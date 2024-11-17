@@ -1,3 +1,6 @@
+# probably should *not* publicly post the results of a random quizbowl match
+*.qbj
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
