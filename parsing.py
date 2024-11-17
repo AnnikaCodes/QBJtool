@@ -135,7 +135,7 @@ def parseQBJ(filename: str) -> QBJ:
     with open(filename) as f:
         return json.load(f)
 
-with open("sample.qbj") as f:
-    qbj: QBJ = json.load(f)
-    print(qbj["match_questions"][3]["bonus"]["parts"][2]["controlled_points"])
-    print(qbj["match_questions"][3])
+# with open("sample.qbj") as f:
+#     qbj: QBJ = json.load(f)
+#     print(qbj["match_questions"][3]["bonus"]["parts"][2]["controlled_points"])
+#     print(qbj["match_questions"][3])
