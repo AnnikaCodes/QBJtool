@@ -1,2 +1,3 @@
 # notes on QBJ files
 `.qbj` files from Quiz Bowl tournaments are... just normal json files!
+- QBJs don't include any info about *what* the question is so we have to parse packet JSOns also to get this...

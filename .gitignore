@@ -1,5 +1,6 @@
 # probably should *not* publicly post the results of a random quizbowl match
 *.qbj
+*.json
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
