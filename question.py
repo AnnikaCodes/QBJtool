@@ -1,7 +1,7 @@
 # This file contains a sane representation of questions — for
 # stats purposes.
 # TODO: bonuses
-from typing import Optional
+from typing import Optional, List
 from ids import Player, Team
 
 class Buzz:
@@ -36,12 +36,16 @@ class Tossup:
     incorrectBuzz: Optional[Buzz]
     """The buzz that incorrectly answered this tossup"""
 
+    players: List[Player]
+    """The players who heard this tossup."""
+
     def __init__(
         self, text: str, answer: str, correctBuzz: Optional[Buzz],
-        incorrectBuzz: Optional[Buzz]
+        incorrectBuzz: Optional[Buzz], players: List[Player]
     ) -> None:
         self.text = text
         self.answer = answer
         self.correctBuzz = correctBuzz
         self.incorrectBuzz = incorrectBuzz
+        self.players = players
 

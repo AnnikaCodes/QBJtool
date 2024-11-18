@@ -2,14 +2,16 @@
 
 import json
 import sys
+import traceback
 from parsing import QBJ, PacketJSON
 from tournament import Tournament
 
-qbjPaths = sys.argv[1:]
-if len(qbjPaths) == 0:
+if len(sys.argv) < 2:
     print("qbjtool: no input files", file=sys.stderr)
-    print(f"Try running `{sys.argv[0]} round1.qbj round2.qbj ...`", file=sys.stderr)
+    print(f"Try running `{sys.argv[0]} <tournament name> round1.qbj round2.qbj ...`", file=sys.stderr)
     sys.exit(1)
+name = sys.argv[1]
+qbjPaths = sys.argv[2:]
 
 t = Tournament()
 
@@ -36,9 +38,13 @@ for qbjPath in qbjPaths:
                     continue
             if not added:
                 print(f"Warning: no packet found for {qbjPath} (checked {", ".join(packetPathsToTry)}); skipping this packet", file=sys.stderr)
-    except:
-        print(f"Error loading {qbjPath}", file=sys.stderr)
+    except Exception as e:
+        print(f"Error loading {qbjPath}:", file=sys.stderr)
+        traceback.print_exc()
         continue
 print(f"=> Loaded {qbjsLoaded} QBJ files")
 
-print(str(t.playerStatsByCategory).replace("'", '"'))
+t.generateCombinedStats()
+print(f"==> Generated stats for combined categories")
+open("out.html", "w").write(t.statsToHTML(name))
+print(t.players)
