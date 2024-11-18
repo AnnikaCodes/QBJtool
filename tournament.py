@@ -189,7 +189,7 @@ class Tournament:
                     if points > 0:
                         toUpdate.gets += 1
                         toUpdate.buzzPositions.append(position)
-                    else:
+                    elif points < 0:
                         toUpdate.negs += 1
             self.tossups.append(Tossup(text, answer, correctBuzz, incorrectBuzz, playersWhoHeardIt))
 
