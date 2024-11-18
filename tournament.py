@@ -169,7 +169,7 @@ class Tournament:
                         print(f"Warning: multiple correct buzzes on tossup with answerline '{answer}'")
                     correctBuzz = buzz
                 else:
-                    # TODO rework incorrect buzz tracking — OK to have >1 0s but not >1 -5s
+                    # TODO rework incorrect buzz tracking — OK to have >1 0s but not >1 Negs
                     # if incorrectBuzz is not None:
                     #     print(f"Warning: multiple negs on tossup with answerline '{answer}' (this neg: {player})")
                     incorrectBuzz = buzz
@@ -240,13 +240,13 @@ class Tournament:
                 <th>Player</th>
                 <th>{category} points/20 TUs</th>
                 <th>Gets</th>
-                <th>-5s</th>
+                <th>Negs</th>
                 <th>Average buzz position</th></thead>"""
             playerStats: List[Tuple[
                 Player,
                 str, # PPTUH
                 int, # gets
-                int, # -5s
+                int, # Negs
                 str, # avg buzz position
             ]] = []
             # hack
@@ -292,13 +292,13 @@ class Tournament:
                 <th>Category</th>
                 <th>points/20 TUs</th>
                 <th>Gets</th>
-                <th>-5s</th>
+                <th>Negs</th>
                 <th>Average buzz position</th></thead>"""
             categoryStats: List[Tuple[
                 Category,
                 str, # PPTUH
                 int, # gets
-                int, # -5s
+                int, # Negs
                 str, # avg buzz position
             ]] = []
 
