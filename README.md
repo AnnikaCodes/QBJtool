@@ -5,9 +5,12 @@ Right now, it only creates "cat stats": for each category, a list of which playe
 However, it should be pretty easy to add more functionality; buzzpoints are already read from the QBJ files, and there is typing for looking at bonuses.
 
 ## Usage
-You should run QBJtool from the directory which contains your packet `.json` files (and they should have the names they are given in the QBJ files). Then you can run QBJtool like this: ```bash
+You should run QBJtool from the directory which contains your packet `.json` files (and they should have the names they are given in the QBJ files). Then you can run QBJtool like this: 
+```bash
 python3 qbjtool.py <name of tournament> [list of QBJ files]
 ```
-For example, ```bash
+
+For example, 
+```bash
 python3 qbjtool.py 'ACF Winter 2024 @ U of Somewhere' *.qbj
 ```
