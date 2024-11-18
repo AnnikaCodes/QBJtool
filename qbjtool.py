@@ -38,7 +38,7 @@ for qbjPath in qbjPaths:
                 except FileNotFoundError:
                     continue
             if not added:
-                print(f"Warning: no packet found for {qbjPath} (checked {", ".join(packetPathsToTry)}); skipping this packet", file=sys.stderr)
+                print(f"Warning: no packet found for {qbjPath} (checked {', '.join(packetPathsToTry)}); skipping this packet", file=sys.stderr)
     except Exception as e:
         print(f"Error: could not load {qbjPath}. Here's the Python error trace:\n", file=sys.stderr)
         traceback.print_exc()
