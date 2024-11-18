@@ -14,13 +14,15 @@ from os import path
 BIG_CATEGORIES = [
     ("Science", ["Biology", "Chemistry", "Physics", "Other Science"]),
     ("Literature", [
-        "American Literature", "British Literature",
-        "European Literature", "World Literature", "Other Literature",
+        "American Literature", "British Literature", "European Literature",
+        "World Literature", "Other Literature", "World/Other Literature"
     ]),
     ("History", [
         "American History", "World History", "European History", "Other History"
     ]),
-    ("Fine Arts", ["Painting/Sculpture", "Other Fine Arts", "Classical Music"]),
+    ("Fine Arts", [
+        "Painting/Sculpture", "Other Fine Arts", "Classical Music", "Visual Fine Arts",
+    ]),
     ("RMPSS", ["Religion", "Mythology", "Social Science", "Philosophy"]),
 ]
 
