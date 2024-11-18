@@ -1,6 +1,7 @@
 # This file contains the overall state tracker for a whole tournament.
 
-from typing import List, Tuple, Dict, TypedDict, Self, Set, Optional
+from typing import List, Tuple, Dict, TypedDict, Set, Optional
+from typing_extensions import Self
 from ids import Player, Team, Category
 from question import Tossup, Buzz
 from parsing import QBJ, PacketJSON
