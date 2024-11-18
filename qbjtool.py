@@ -7,8 +7,9 @@ from parsing import QBJ, PacketJSON
 from tournament import Tournament
 
 if len(sys.argv) < 2:
-    print("qbjtool: no input files", file=sys.stderr)
+    print("Error: no input files", file=sys.stderr)
     print(f"Try running `{sys.argv[0]} <tournament name> round1.qbj round2.qbj ...`", file=sys.stderr)
+    print("You should run QBJtool in the directory which contains your packet .json files.", file=sys.stderr)
     sys.exit(1)
 name = sys.argv[1]
 qbjPaths = sys.argv[2:]
@@ -39,12 +40,12 @@ for qbjPath in qbjPaths:
             if not added:
                 print(f"Warning: no packet found for {qbjPath} (checked {", ".join(packetPathsToTry)}); skipping this packet", file=sys.stderr)
     except Exception as e:
-        print(f"Error loading {qbjPath}:", file=sys.stderr)
+        print(f"Error: could not load {qbjPath}. Here's the Python error trace:\n", file=sys.stderr)
         traceback.print_exc()
         continue
 print(f"=> Loaded {qbjsLoaded} QBJ files")
 
 t.generateCombinedStats()
 print(f"==> Generated stats for combined categories")
-open("out.html", "w").write(t.statsToHTML(name))
-print(t.players)
+open(f"{name}.html", "w").write(t.statsToHTML(name))
+print(f"===> Wrote stats to {name}.html")

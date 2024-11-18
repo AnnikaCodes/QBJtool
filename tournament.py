@@ -5,6 +5,7 @@ from ids import Player, Team, Category
 from question import Tossup, Buzz
 from parsing import QBJ, PacketJSON
 from datetime import datetime
+from os import path
 
 # TODO: also track PPG per category (& overall)
 
@@ -238,7 +239,6 @@ class Tournament:
                 <th>Gets</th>
                 <th>-5s</th>
                 <th>Average buzz position</th></thead>"""
-            print(len(html))
             playerStats: List[Tuple[
                 Player,
                 str, # PPTUH
@@ -256,7 +256,6 @@ class Tournament:
                 if cat is None:
                     continue
 
-                print(f"{player} has {cat.points} in {category}; heard {cat.tossupsHeard} TUs")
                 pptuh = str(round((cat.points / cat.tossupsHeard)*20, 2))
                 gets = cat.gets
                 negs = cat.negs
@@ -331,14 +330,13 @@ class Tournament:
             html += "</table>"
 
 
-        TEMPLATE = open("../template.html").read() # TODO path
+        # directory with qbjtool.py, and thus template.html, in it
+        qbjtoolPyDir = path.dirname(path.realpath(__file__))
+        TEMPLATE = open(path.join(qbjtoolPyDir, "template.html")).read()
         return TEMPLATE \
             .replace("$$gen_date$$", datetime.today().strftime('%m/%d/%Y')) \
             .replace("$$tour_name$$", name) \
             .replace("$$html$$", html) \
             .replace("$$catstats-navigation$$", " | ".join(catstatsLinks)) \
             .replace("$$catstats-navigation2$$", " | ".join(catstatsLinks2))
-
-
-
 
