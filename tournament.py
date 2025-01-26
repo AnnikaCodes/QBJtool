@@ -208,7 +208,7 @@ class Tournament:
                         toUpdate.tens += 1
                     elif points == -5:
                         toUpdate.negs += 1
-                    else:
+                    elif points != 0:
                         print(f"Warning: unknown point value {points} on tossup with answerline '{answer}'")
 
                     if points > 0:
@@ -303,7 +303,7 @@ class Tournament:
                 avgBuzzPosition = "n/a"
                 if len(cat.buzzPositions) > 0:
                     avgBuzzPosition = str(round(sum(cat.buzzPositions) / len(cat.buzzPositions), 2))
-                playerStats.append((player, pptuh, powers, tens, negs, avgBuzzPosition))
+                    playerStats.append((player, pptuh, powers, tens, negs, avgBuzzPosition))
             # sort by PPG initially
             playerStats.sort(key=lambda x: float(x[1]), reverse=True)
             if len(playerStats) == 0:
