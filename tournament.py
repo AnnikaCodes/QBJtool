@@ -8,20 +8,26 @@ from parsing import QBJ, PacketJSON
 from datetime import datetime
 from os import path
 
-# TODO: also track PPG per category (& overall)
+# TODO:
+#   * Sort players by team like we do for categories
+#   * Make a top 5 buzzes per player HTML file.
 
 # categories that are combos of other categories
 BIG_CATEGORIES = [
     ("Science", ["Biology", "Chemistry", "Physics", "Other Science"]),
     ("Literature", [
         "American Literature", "British Literature", "European Literature",
-        "World Literature", "Other Literature", "World/Other Literature"
+        "World Literature", "Other Literature", "World/Other Literature",
+        "Ancient/Other Literature",
     ]),
     ("History", [
-        "American History", "World History", "European History", "Other History"
+        "American History", "World History", "European History", "Other History",
+        "Ancient History", "Ancient/Other History"
     ]),
     ("Fine Arts", [
         "Painting/Sculpture", "Other Fine Arts", "Classical Music", "Visual Fine Arts",
+        "Auditory Fine Arts"
+
     ]),
     ("RMPSS", ["Religion", "Mythology", "Social Science", "Philosophy"]),
 ]
@@ -35,8 +41,8 @@ class PlayerCatStat:
     """The number of points the player has earned in this category."""
     powers: int
     """The number of +15 pts the player has earned in this category."""
-    gets: int
-    """The number of tossups the player has correctly answered in this category."""
+    tens: int
+    """The number of +10 pts the player has earned in this category."""
     negs: int
     """The number of tossups the player has incorrectly answered in this category."""
     buzzPositions: List[int]
@@ -46,7 +52,7 @@ class PlayerCatStat:
         """Default initialization w/ no questions"""
         self.points = 0
         self.powers = 0
-        self.gets = 0
+        self.tens = 0
         self.negs = 0
         self.tossupsHeard = 0
         self.buzzPositions = []
@@ -54,7 +60,7 @@ class PlayerCatStat:
     def __str__(self) -> str:
         # TODO: average buzz position
         #averageBuzzPosition = sum(self.buzzPositions) / len(self.buzzPositions)
-        return f"Points: {self.points} ({self.powers}/{self.gets}/{self.negs})" #, average buzz position: {averageBuzzPosition}"
+        return f"Points: {self.points} ({self.powers}/{self.tens}/{self.negs})" #, average buzz position: {averageBuzzPosition}"
     def __repr__(self) -> str:
         return f"'{str(self)}'"
 
@@ -62,7 +68,7 @@ class PlayerCatStat:
         new = PlayerCatStat()
         new.points = self.points + other.points
         new.powers = self.powers + other.powers
-        new.gets = self.gets + other.gets
+        new.tens = self.tens + other.tens
         new.negs = self.negs + other.negs
         new.buzzPositions = self.buzzPositions + other.buzzPositions
         new.tossupsHeard = self.tossupsHeard + other.tossupsHeard
@@ -128,6 +134,18 @@ class Tournament:
             text = packet["tossups"][qnIdx]["question"]
             answer = packet["tossups"][qnIdx]["answer"]
             category = packet["tossups"][qnIdx]["metadata"]
+            if "- " in category:
+                category = category.split("- ")[1]
+            if " -" in category:
+                category = category.split(" -")[1]
+            # slight hack because MS is annoying
+            if category == "World Literature":
+                category = "World/Other Literature"
+            if category == "Ancient History":
+                category = "Ancient/Other History"
+            if category == "Geography/Current Events/Other" or category == "Current Events":
+                category = "Geography/Current Events/Other Academic"
+
             self.categories.add(category)
 
             # udpate tossups heard
@@ -186,11 +204,15 @@ class Tournament:
                     toUpdate.points += points
                     if points == 15:
                         toUpdate.powers += 1
-                    if points > 0:
-                        toUpdate.gets += 1
-                        toUpdate.buzzPositions.append(position)
-                    elif points < 0:
+                    elif points == 10:
+                        toUpdate.tens += 1
+                    elif points == -5:
                         toUpdate.negs += 1
+                    else:
+                        print(f"Warning: unknown point value {points} on tossup with answerline '{answer}'")
+
+                    if points > 0:
+                        toUpdate.buzzPositions.append(position)
             self.tossups.append(Tossup(text, answer, correctBuzz, incorrectBuzz, playersWhoHeardIt))
 
     def generateCombinedStats(self) -> None:
@@ -226,25 +248,38 @@ class Tournament:
         """
         # cat stats
         html = '<h1 id="bycat">Best players in each category</h1>'
-        html += '(<a href="#byplayer">jump to best categories for each player</a>)<br /><br/>$$catstats-navigation$$'
+        html += '(<a href="#byplayer">jump to best categories for each player</a>)<br /><br/>'
+        html += '<br/>$$catstats-navigation$$<hr/>'
         catstatsLinks = []
 
         # this is a little hacky but it means the "bigger" cats are first
+        # things with underscores represent the start of a new line
         toListFirst = ["Overall"] + [x[0] for x in BIG_CATEGORIES]
+        for bigCat, constituents in BIG_CATEGORIES:
+            toListFirst.append("_" + bigCat)
+            toListFirst += constituents
+        toListFirst.append("_Other")
+
         for category in toListFirst + list(self.categories - set(toListFirst)):
-            catstatsLinks.append(f'<a href="#{toID(category)}">{category}</a>')
-            html += f'<h2 id="{toID(category)}">{category} '
-            html += '<small><small><small><a href="#bycat">&#x21A9;</a></small></small></small></h2>'
-            html += '<table data-sortable class="sortable-theme-bootstrap">'
-            html += f"""<thead><tr>
+            if category[0] == "_":
+                print(category)
+                catstatsLinks.append(f'<br /><hr/><b><i>{category[1:]}</i></b>:<br/>')
+                continue
+            curHTML = ""
+            curHTML += f'<h2 id="{toID(category)}">{category} '
+            curHTML += '<small><small><small><a href="#bycat">&#x21A9;</a></small></small></small></h2>'
+            curHTML += '<table data-sortable class="sortable-theme-bootstrap">'
+            curHTML += f"""<thead><tr>
                 <th>Player</th>
                 <th>{category} points/20 TUs</th>
-                <th>Gets</th>
-                <th>Negs</th>
+                <th>+15</th>
+                <th>+10</th>
+                <th>-5</th>
                 <th>Average buzz position</th></thead>"""
             playerStats: List[Tuple[
                 Player,
                 str, # PPTUH
+                int, # Powers
                 int, # gets
                 int, # Negs
                 str, # avg buzz position
@@ -259,25 +294,35 @@ class Tournament:
                 if cat is None:
                     continue
 
-                pptuh = str(round((cat.points / cat.tossupsHeard)*20, 2))
-                gets = cat.gets
+                pptuh = "0"
+                if cat.tossupsHeard != 0:
+                    pptuh = str(round((cat.points / cat.tossupsHeard)*20, 2))
+                powers = cat.powers
+                tens = cat.tens
                 negs = cat.negs
                 avgBuzzPosition = "n/a"
                 if len(cat.buzzPositions) > 0:
                     avgBuzzPosition = str(round(sum(cat.buzzPositions) / len(cat.buzzPositions), 2))
-                playerStats.append((player, pptuh, gets, negs, avgBuzzPosition))
+                playerStats.append((player, pptuh, powers, tens, negs, avgBuzzPosition))
             # sort by PPG initially
             playerStats.sort(key=lambda x: float(x[1]), reverse=True)
+            if len(playerStats) == 0:
+                continue
 
             for stat in playerStats:
-                html += f"""<tr>
+                curHTML += f"""<tr>
                     <td>{stat[0]}</td>
                     <td>{stat[1]}</td>
                     <td>{stat[2]}</td>
                     <td>{stat[3]}</td>
                     <td>{stat[4]}</td>
+                    <td>{stat[5]}</td>
                 </tr>"""
-            html += "</table>"
+            curHTML += "</table>"
+
+            catstatsLinks.append(f'<a href="#{toID(category)}">{category}</a>')
+            html += curHTML
+
 
         html += '<h1 id="byplayer">Best categories for each player</h1>'
         html += '(<a href="#bycat">jump to best players in each category</a>)<br/><br/>$$catstats-navigation2$$'
@@ -291,12 +336,14 @@ class Tournament:
             html += f"""<thead><tr>
                 <th>Category</th>
                 <th>points/20 TUs</th>
-                <th>Gets</th>
-                <th>Negs</th>
+                <th>+15</th>
+                <th>+10</th>
+                <th>-5</th>
                 <th>Average buzz position</th></thead>"""
             categoryStats: List[Tuple[
                 Category,
                 str, # PPTUH
+                int, # Powers
                 int, # gets
                 int, # Negs
                 str, # avg buzz position
@@ -312,13 +359,15 @@ class Tournament:
                 if cat is None:
                     continue
 
-                ppg = str(round((cat.points / cat.tossupsHeard)*20, 2))
-                gets = cat.gets
+                ppg = "0"
+                if cat.tossupsHeard != 0:
+                    ppg = str(round((cat.points / cat.tossupsHeard)*20, 2))
+                powers = cat.powers
                 negs = cat.negs
                 avgBuzzPosition = "n/a"
                 if len(cat.buzzPositions) > 0:
                     avgBuzzPosition = str(round(sum(cat.buzzPositions) / len(cat.buzzPositions), 2))
-                categoryStats.append((category, ppg, gets, negs, avgBuzzPosition))
+                categoryStats.append((category, ppg, powers, cat.tens, negs, avgBuzzPosition))
             # sort by PPG initially
             categoryStats.sort(key=lambda x: float(x[1]), reverse=True)
 
@@ -329,6 +378,7 @@ class Tournament:
                     <td>{stat[2]}</td>
                     <td>{stat[3]}</td>
                     <td>{stat[4]}</td>
+                    <td>{stat[5]}</td>
                 </tr>"""
             html += "</table>"
 
@@ -340,6 +390,9 @@ class Tournament:
             .replace("$$gen_date$$", datetime.today().strftime('%m/%d/%Y')) \
             .replace("$$tour_name$$", name) \
             .replace("$$html$$", html) \
-            .replace("$$catstats-navigation$$", " | ".join(catstatsLinks)) \
+            .replace("$$catstats-navigation$$", " | ".join(catstatsLinks)
+                     .replace("/> | ", "/> ")
+                     .replace("| <br", "<br")
+                     ) \
             .replace("$$catstats-navigation2$$", " | ".join(catstatsLinks2))
 

@@ -44,6 +44,9 @@ for qbjPath in qbjPaths:
         traceback.print_exc()
         continue
 print(f"=> Loaded {qbjsLoaded} QBJ files")
+print(f"Alphabetical list of categories:\n\t* {'\n\t* '.join(sorted(list(t.categories)))}")
+byLastWord = '\n\t* '.join(sorted(list(t.categories), key=lambda x: x.split()[-1]))
+print(f"Alphabetical by last word list of categories:\n\t* {byLastWord}")
 
 t.generateCombinedStats()
 print(f"==> Generated stats for combined categories")
