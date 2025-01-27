@@ -50,5 +50,8 @@ print(f"Alphabetical by last word list of categories:\n\t* {byLastWord}")
 
 t.generateCombinedStats()
 print(f"==> Generated stats for combined categories")
-open(f"{name}.html", "w").write(t.statsToHTML(name))
+open(f"{name} (cat stats).html", "w").write(t.statsToHTML(name))
 print(f"===> Wrote stats to {name}.html")
+
+open(f"{name} (buzzpoints).html", "w").write(t.buzzpointsToHTML(name, 5))
+print(f"===> Wrote buzzpoints to {name} (buzzpoints).html")

@@ -396,3 +396,60 @@ class Tournament:
                      ) \
             .replace("$$catstats-navigation2$$", " | ".join(catstatsLinks2))
 
+    def buzzpointsToHTML(self, name: str, n: int) -> str:
+        """Generates an HTML page showing the best n buzzes per player for this tournament.
+
+        Args:
+            name (str): the name of the tournament, e.g. "ACF Summer 1926 @ U of Q"
+            n (int): the number of buzzes to show per player
+        Returns:
+            str: The HTML
+        """
+        html = f'<center><h1>Earliest {n} buzzes for each player</h1>'
+        html += '<br/>$$navigation$$<hr/></center>'
+        links = []
+
+        tossupsByPlayer: Dict[Player, List[Tossup]] = {}
+        for tossup in self.tossups:
+            if tossup.correctBuzz is None:
+                continue
+            if tossup.correctBuzz.player not in tossupsByPlayer:
+                tossupsByPlayer[tossup.correctBuzz.player] = []
+            tossupsByPlayer[tossup.correctBuzz.player].append(tossup)
+
+        def buzzPosition(tossup: Tossup) -> float:
+            if tossup.correctBuzz is None:
+                return -1000
+            return tossup.correctBuzz.position / len(tossup.text.split())
+
+        for player in tossupsByPlayer:
+            links.append(f'<a href="#{toID(player)}">{player}</a>')
+            html += f'<center><h2 id="{toID(player)}">{player}'
+            html += ' <small><small><small><a href="#">&#x21A9;</a></small></small></small></h2></center>'
+
+            html += '<ol>'
+            bestTossups = sorted(tossupsByPlayer[player], key=buzzPosition)[:n]
+            for tu in bestTossups:
+                if tu.correctBuzz is None:
+                    continue
+                position = tu.correctBuzz.position
+                tossupWords = tu.text.split()
+                if position < len(tossupWords):
+                    tossupWords[position] = f"<u><mark>{tossupWords[position]}</u></mark>"
+                    # tossupWords[position] += f"<small><small><i>&#8592;buzzed for +{tu.correctBuzz.points}</i></small></small>"
+                else:
+                    print(f"Warning: buzz position {position} out of bounds for tossup '{tu.text}'")
+                html += f"<li>[after {(buzzPosition(tu) * 100):2.0f}% of the tossup] {' '.join(tossupWords)}"
+                html += f"<br />ANSWER: {tu.answer}<br /></li>"
+            html += '</ol>'
+
+        qbjtoolPyDir = path.dirname(path.realpath(__file__))
+        TEMPLATE = open(path.join(qbjtoolPyDir, "buzzpts_template.html")).read()
+        return TEMPLATE \
+            .replace("$$gen_date$$", datetime.today().strftime('%m/%d/%Y')) \
+            .replace("$$tour_name$$", name) \
+            .replace("$$html$$", html) \
+            .replace("$$navigation$$", " | ".join(links))
+
+
+
