@@ -14,22 +14,37 @@ from os import path
 
 # categories that are combos of other categories
 BIG_CATEGORIES = [
-    ("Science", ["Biology", "Chemistry", "Physics", "Other Science"]),
+    ("Science and Math", [
+        "Biology", "Chemistry", "Physics", "Other Science", "Astronomy", "Math",
+        "Earth Science", "Computer Science"
+    ]),
     ("Literature", [
         "American Literature", "British Literature", "European Literature",
         "World Literature", "Other Literature", "World/Other Literature",
-        "Ancient/Other Literature",
+        "Ancient/Other Literature", "British/Commonwealth Literature",
+        "American - Drama Literature", "American - Long Fiction Literature",
+        "American - Poetry Literature", "American - Short Story Literature",
+        "American - Short Story/Long Fiction Literature", "British - Drama Literature",
+        "British - Long Fiction Literature", "British - Poetry Literature",
+        "British - Short Story Literature", "Classical Literature",
+        "European - Drama Literature", "European - Long Fiction Literature",
+        "European - Poetry Literature", "European - Short Story Liiterature",
+        "Mixed Literature", "World - Drama Literature", "World - Long Fiction Literature",
+        "World - Poetry Literature", "World - Short Story Literature",
+        "World- Long Fiction Literature"
     ]),
     ("History", [
         "American History", "World History", "European History", "Other History",
-        "Ancient History", "Ancient/Other History"
+        "Ancient History", "Ancient/Other History", "History - American", "History - Ancient",
+        "History - European", "History - Other", "History - World", "Cross History",
+        "Cross/Historiography History", "European History History"
     ]),
     ("Fine Arts", [
         "Painting/Sculpture", "Other Fine Arts", "Classical Music", "Visual Fine Arts",
-        "Auditory Fine Arts"
+        "Auditory Fine Arts", "Auditory", "Architecture", "Jazz", "Opera", "Visual"
 
     ]),
-    ("RMPSS", ["Religion", "Mythology", "Social Science", "Philosophy"]),
+    ("RMPSS", ["Religion", "Mythology", "Social Science", "Philosophy", "Social Economics", "Social Linguistics", "Social Other", "Social Psychology", "Social Sociology"]),
 ]
 
 def toID(s: str) -> str:
@@ -129,22 +144,41 @@ class Tournament:
             qnIdx = rawTossup["question_number"] - 1 # 1-indexed
             if qnIdx >= len(packet["tossups"]):
                 print(f"Warning: tossup number {qnIdx} not found in packet")
+                print()
                 continue
 
             text = packet["tossups"][qnIdx]["question"]
             answer = packet["tossups"][qnIdx]["answer"]
-            category = packet["tossups"][qnIdx]["metadata"]
-            if "- " in category:
-                category = category.split("- ")[1]
-            if " -" in category:
-                category = category.split(" -")[1]
+            category = packet["tossups"][qnIdx]["metadata"].strip()
+            if ", " in category:
+                category = category.split(', ')[1]
+                category = category.replace('Belief/Thought - ', '')
+                category = category.replace('Fine Arts - ', '')
+                category = category.replace('Science - ', '')
+                category = category.replace('Other - ', '')
+            for preamble in ["History - ", "Literature - ", "Literature – "]:
+                if category.startswith(preamble):
+                    category = category.replace(preamble, '')
+                    category += " " + preamble.split(' ')[0]
+            if category.endswith('Literature'):
+                category = category.split('- ')[0].strip() + " Literature"
+            # if "- " in category:
+            #     category = category.split("- ")[1]
+            # if " -" in category:
+            #     category = category.split(" -")[1]
             # slight hack because MS is annoying
+            category = category.replace("History History", "History")
+            category = category.replace("Literature Literature", "Literature")
             if category == "World Literature":
                 category = "World/Other Literature"
             if category == "Ancient History":
                 category = "Ancient/Other History"
             if category == "Geography/Current Events/Other" or category == "Current Events":
                 category = "Geography/Current Events/Other Academic"
+
+            for catP in ['Religion', 'Mythology']:
+                if category.startswith(catP + ' -'):
+                    category = catP
 
             self.categories.add(category)
 
@@ -159,6 +193,7 @@ class Tournament:
                         playersWhoHeardIt = players
 
                 for p in playersWhoHeardIt:
+                    print(p)
                     if p not in self.playerStatsByCategory:
                         self.playerStatsByCategory[p] = {}
                     if category not in self.playerStatsByCategory[p]:
@@ -275,6 +310,7 @@ class Tournament:
                 <th>+15</th>
                 <th>+10</th>
                 <th>-5</th>
+                <th>Aggression</th>
                 <th>Average buzz position</th></thead>"""
             playerStats: List[Tuple[
                 Player,
@@ -282,6 +318,7 @@ class Tournament:
                 int, # Powers
                 int, # gets
                 int, # Negs
+                str, # Aggression
                 str, # avg buzz position
             ]] = []
             # hack
@@ -300,10 +337,13 @@ class Tournament:
                 powers = cat.powers
                 tens = cat.tens
                 negs = cat.negs
+                aggression = "n/a"
+                
                 avgBuzzPosition = "n/a"
                 if len(cat.buzzPositions) > 0:
                     avgBuzzPosition = str(round(sum(cat.buzzPositions) / len(cat.buzzPositions), 2))
-                    playerStats.append((player, pptuh, powers, tens, negs, avgBuzzPosition))
+                    aggression = str(round((cat.powers + cat.negs)/len(cat.buzzPositions), 3))
+                    playerStats.append((player, pptuh, powers, tens, negs, aggression, avgBuzzPosition))
             # sort by PPG initially
             playerStats.sort(key=lambda x: float(x[1]), reverse=True)
             if len(playerStats) == 0:
@@ -317,6 +357,7 @@ class Tournament:
                     <td>{stat[3]}</td>
                     <td>{stat[4]}</td>
                     <td>{stat[5]}</td>
+                    <td>{stat[6]}</td>
                 </tr>"""
             curHTML += "</table>"
 
@@ -339,6 +380,7 @@ class Tournament:
                 <th>+15</th>
                 <th>+10</th>
                 <th>-5</th>
+                <th>Aggression</th>
                 <th>Average buzz position</th></thead>"""
             categoryStats: List[Tuple[
                 Category,
@@ -361,13 +403,17 @@ class Tournament:
 
                 ppg = "0"
                 if cat.tossupsHeard != 0:
+                    # print(f"{player} in {category}: {cat.points} pts in {cat.tossupsHeard} TUs")
                     ppg = str(round((cat.points / cat.tossupsHeard)*20, 2))
                 powers = cat.powers
                 negs = cat.negs
                 avgBuzzPosition = "n/a"
+                aggression = "n/a"
                 if len(cat.buzzPositions) > 0:
                     avgBuzzPosition = str(round(sum(cat.buzzPositions) / len(cat.buzzPositions), 2))
-                categoryStats.append((category, ppg, powers, cat.tens, negs, avgBuzzPosition))
+                    aggression = str(round((cat.powers + cat.negs)/len(cat.buzzPositions), 3))
+
+                categoryStats.append((category, ppg, powers, cat.tens, negs, aggression, avgBuzzPosition))
             # sort by PPG initially
             categoryStats.sort(key=lambda x: float(x[1]), reverse=True)
 
@@ -379,6 +425,7 @@ class Tournament:
                     <td>{stat[3]}</td>
                     <td>{stat[4]}</td>
                     <td>{stat[5]}</td>
+                    <td>{stat[6]}</td>
                 </tr>"""
             html += "</table>"
 
