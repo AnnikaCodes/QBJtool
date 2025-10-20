@@ -31,20 +31,21 @@ BIG_CATEGORIES = [
         "European - Poetry Literature", "European - Short Story Liiterature",
         "Mixed Literature", "World - Drama Literature", "World - Long Fiction Literature",
         "World - Poetry Literature", "World - Short Story Literature",
-        "World- Long Fiction Literature"
+        "World- Long Fiction Literature", "Anglophone Literature"
     ]),
     ("History", [
         "American History", "World History", "European History", "Other History",
         "Ancient History", "Ancient/Other History", "History - American", "History - Ancient",
         "History - European", "History - Other", "History - World", "Cross History",
-        "Cross/Historiography History", "European History History"
+        "Cross/Historiography History", "European History History",
+        "Post-1900 History", "Pre-1000 History", "1000-1600 History", "1600-1900 History"
     ]),
     ("Fine Arts", [
-        "Painting/Sculpture", "Other Fine Arts", "Classical Music", "Visual Fine Arts",
+        "Painting/Sculpture", "Painting and Sculpture", "Other Fine Arts", "Classical Music", "Visual Fine Arts",
         "Auditory Fine Arts", "Auditory", "Architecture", "Jazz", "Opera", "Visual"
 
     ]),
-    ("RMPSS", ["Religion", "Mythology", "Social Science", "Philosophy", "Social Economics", "Social Linguistics", "Social Other", "Social Psychology", "Social Sociology"]),
+    ("RMPSS", ["Religion", "Mythology", "Social Science", "Philosophy", "Social Economics", "Social Linguistics", "Social Other", "Social Psychology", "Social Sociology", "Belief"]),
 ]
 
 def toID(s: str) -> str:
@@ -150,6 +151,8 @@ class Tournament:
             text = packet["tossups"][qnIdx]["question"]
             answer = packet["tossups"][qnIdx]["answer"]
             category = packet["tossups"][qnIdx]["metadata"].strip()
+            if "&gt;" in category: 
+                category = category.split('&gt;')[0]
             if ", " in category:
                 category = category.split(', ')[1]
                 category = category.replace('Belief/Thought - ', '')
@@ -193,7 +196,6 @@ class Tournament:
                         playersWhoHeardIt = players
 
                 for p in playersWhoHeardIt:
-                    print(p)
                     if p not in self.playerStatsByCategory:
                         self.playerStatsByCategory[p] = {}
                     if category not in self.playerStatsByCategory[p]:
@@ -234,7 +236,6 @@ class Tournament:
                     self.playerStatsByCategory[player][category] = PlayerCatStat()
                 if player not in self.overallPlayerStats:
                     self.overallPlayerStats[player] = PlayerCatStat()
-
                 for toUpdate in [self.playerStatsByCategory[player][category], self.overallPlayerStats[player]]:
                     toUpdate.points += points
                     if points == 15:
@@ -310,7 +311,6 @@ class Tournament:
                 <th>+15</th>
                 <th>+10</th>
                 <th>-5</th>
-                <th>Aggression</th>
                 <th>Average buzz position</th></thead>"""
             playerStats: List[Tuple[
                 Player,
@@ -318,7 +318,6 @@ class Tournament:
                 int, # Powers
                 int, # gets
                 int, # Negs
-                str, # Aggression
                 str, # avg buzz position
             ]] = []
             # hack
@@ -332,19 +331,21 @@ class Tournament:
                     continue
 
                 pptuh = "0"
+                print(f"{player}: {category} {cat.points} in {cat.tossupsHeard}") or " " 
                 if cat.tossupsHeard != 0:
                     pptuh = str(round((cat.points / cat.tossupsHeard)*20, 2))
                 powers = cat.powers
                 tens = cat.tens
                 negs = cat.negs
-                aggression = "n/a"
+                #aggression = "n/a"
                 
                 avgBuzzPosition = "n/a"
                 if len(cat.buzzPositions) > 0:
                     avgBuzzPosition = str(round(sum(cat.buzzPositions) / len(cat.buzzPositions), 2))
-                    aggression = str(round((cat.powers + cat.negs)/len(cat.buzzPositions), 3))
-                    playerStats.append((player, pptuh, powers, tens, negs, aggression, avgBuzzPosition))
+                 #   aggression = str(round((cat.powers + cat.negs)/len(cat.buzzPositions), 3))
+                playerStats.append((player, pptuh, powers, tens, negs, avgBuzzPosition))
             # sort by PPG initially
+            print(playerStats)
             playerStats.sort(key=lambda x: float(x[1]), reverse=True)
             if len(playerStats) == 0:
                 continue
@@ -357,7 +358,6 @@ class Tournament:
                     <td>{stat[3]}</td>
                     <td>{stat[4]}</td>
                     <td>{stat[5]}</td>
-                    <td>{stat[6]}</td>
                 </tr>"""
             curHTML += "</table>"
 
@@ -380,7 +380,6 @@ class Tournament:
                 <th>+15</th>
                 <th>+10</th>
                 <th>-5</th>
-                <th>Aggression</th>
                 <th>Average buzz position</th></thead>"""
             categoryStats: List[Tuple[
                 Category,
@@ -394,9 +393,9 @@ class Tournament:
             # show "synthetic" cats first
             for category in ["Overall"] + list(self.categories):
                 cat = None
-                if category in self.playerStatsByCategory[player]:
+                if player in self.playerStatsByCategory and category in self.playerStatsByCategory[player]:
                     cat = self.playerStatsByCategory[player][category]
-                elif category == "Overall":
+                elif category == "Overall" and player in self.overallPlayerStats:
                     cat = self.overallPlayerStats[player]
                 if cat is None:
                     continue
@@ -408,12 +407,12 @@ class Tournament:
                 powers = cat.powers
                 negs = cat.negs
                 avgBuzzPosition = "n/a"
-                aggression = "n/a"
+               # aggression = "n/a"
                 if len(cat.buzzPositions) > 0:
                     avgBuzzPosition = str(round(sum(cat.buzzPositions) / len(cat.buzzPositions), 2))
                     aggression = str(round((cat.powers + cat.negs)/len(cat.buzzPositions), 3))
 
-                categoryStats.append((category, ppg, powers, cat.tens, negs, aggression, avgBuzzPosition))
+                categoryStats.append((category, ppg, powers, cat.tens, negs, avgBuzzPosition))
             # sort by PPG initially
             categoryStats.sort(key=lambda x: float(x[1]), reverse=True)
 
@@ -425,7 +424,6 @@ class Tournament:
                     <td>{stat[3]}</td>
                     <td>{stat[4]}</td>
                     <td>{stat[5]}</td>
-                    <td>{stat[6]}</td>
                 </tr>"""
             html += "</table>"
 

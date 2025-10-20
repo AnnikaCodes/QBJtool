@@ -18,24 +18,27 @@ t = Tournament()
 
 # do ""smart""" packet location
 qbjsLoaded = 0
+print(qbjPaths)
 for qbjPath in qbjPaths:
     try:
         with open(qbjPath) as f:
-            qbj: QBJ = json.load(f)
+            qbj = json.load(f)
             packetname = qbj["packets"]
             packetPathsToTry = [f"{packetname}.json"]
 
             added = False
             for path in packetPathsToTry:
+                print(f"--> opened: {qbjPath}")
                 try:
                     with open(path) as f:
                         packet: PacketJSON = json.load(f)
                         t.addQBJAndPacket(qbj, packet)
-                        # print(f"Added QBJ {qbjPath} with packet {path}")
+                        print(f"Added QBJ {qbjPath} with packet {path}")
                         added = True
                         qbjsLoaded += 1
                         break
                 except FileNotFoundError:
+                    print("FNF Error!", path)
                     continue
             if not added:
                 print(f"Warning: no packet found for {qbjPath} (checked {', '.join(packetPathsToTry)}); skipping this packet", file=sys.stderr)
@@ -53,5 +56,5 @@ print(f"==> Generated stats for combined categories")
 open(f"{name} (cat stats).html", "w").write(t.statsToHTML(name))
 print(f"===> Wrote stats to {name}.html")
 
-open(f"{name} (buzzes).html", "w").write(t.buzzpointsToHTML(name, 5))
+open(f"{name} (buzzes).html", "w").write(t.buzzpointsToHTML(name, 15))
 print(f"===> Wrote best buzzes to {name} (buzzes).html")
