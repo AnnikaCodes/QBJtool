@@ -47,9 +47,9 @@ BIG_CATEGORIES = [
     ]),
     ("RMPSS", ["Religion", "Mythology", "Social Science", "Philosophy", "Social Economics", "Social Linguistics", "Social Other", "Social Psychology", "Social Sociology", "Belief"]),
 ]
-
+import re
 def toID(s: str) -> str:
-    return s.lower().replace(" ", "-")
+    return re.sub(r'<\/?[a-z]*\/?>','',s.lower().strip().replace(' ', '-'))
 
 class PlayerCatStat:
     """A player's statistics in a category."""
@@ -298,7 +298,6 @@ class Tournament:
 
         for category in toListFirst + list(self.categories - set(toListFirst)):
             if category[0] == "_":
-                print(category)
                 catstatsLinks.append(f'<br /><hr/><b><i>{category[1:]}</i></b>:<br/>')
                 continue
             curHTML = ""
@@ -308,7 +307,6 @@ class Tournament:
             curHTML += f"""<thead><tr>
                 <th>Player</th>
                 <th>{category} points/20 TUs</th>
-                <th>+15</th>
                 <th>+10</th>
                 <th>-5</th>
                 <th>Average buzz position</th></thead>"""
@@ -327,11 +325,11 @@ class Tournament:
                     cat = self.playerStatsByCategory[player][category]
                 elif category == "Overall":
                     cat = self.overallPlayerStats[player]
+                    earliestPosition = min(cat.buzzPositions or [1000000])
                 if cat is None:
                     continue
 
                 pptuh = "0"
-                print(f"{player}: {category} {cat.points} in {cat.tossupsHeard}") or " " 
                 if cat.tossupsHeard != 0:
                     pptuh = str(round((cat.points / cat.tossupsHeard)*20, 2))
                 powers = cat.powers
@@ -345,7 +343,6 @@ class Tournament:
                  #   aggression = str(round((cat.powers + cat.negs)/len(cat.buzzPositions), 3))
                 playerStats.append((player, pptuh, powers, tens, negs, avgBuzzPosition))
             # sort by PPG initially
-            print(playerStats)
             playerStats.sort(key=lambda x: float(x[1]), reverse=True)
             if len(playerStats) == 0:
                 continue
@@ -354,7 +351,6 @@ class Tournament:
                 curHTML += f"""<tr>
                     <td>{stat[0]}</td>
                     <td>{stat[1]}</td>
-                    <td>{stat[2]}</td>
                     <td>{stat[3]}</td>
                     <td>{stat[4]}</td>
                     <td>{stat[5]}</td>
@@ -377,7 +373,6 @@ class Tournament:
             html += f"""<thead><tr>
                 <th>Category</th>
                 <th>points/20 TUs</th>
-                <th>+15</th>
                 <th>+10</th>
                 <th>-5</th>
                 <th>Average buzz position</th></thead>"""
@@ -420,7 +415,6 @@ class Tournament:
                 html += f"""<tr>
                     <td>{stat[0]}</td>
                     <td>{stat[1]}</td>
-                    <td>{stat[2]}</td>
                     <td>{stat[3]}</td>
                     <td>{stat[4]}</td>
                     <td>{stat[5]}</td>
@@ -442,7 +436,7 @@ class Tournament:
             .replace("$$catstats-navigation2$$", " | ".join(catstatsLinks2))
 
     def buzzpointsToHTML(self, name: str, n: int) -> str:
-        """Generates an HTML page showing the best n buzzes per player for this tournament.
+        """Generates an HTML page showing where people buzzed on each question.
 
         Args:
             name (str): the name of the tournament, e.g. "ACF Summer 1926 @ U of Q"
@@ -450,44 +444,46 @@ class Tournament:
         Returns:
             str: The HTML
         """
-        html = f'<center><h1>Earliest {n} buzzes for each player</h1>'
+        html = f'<center><h1>Buzzpoints</h1>'
         html += '<br/>$$navigation$$<hr/></center>'
         links = []
 
-        tossupsByPlayer: Dict[Player, List[Tossup]] = {}
-        for tossup in self.tossups:
-            if tossup.correctBuzz is None:
-                continue
-            if tossup.correctBuzz.player not in tossupsByPlayer:
-                tossupsByPlayer[tossup.correctBuzz.player] = []
-            tossupsByPlayer[tossup.correctBuzz.player].append(tossup)
+        tossupToBuzz: Dict[str, List[Buzz]] = {}
+        tossups = sorted(self.tossups, key= lambda x: toID(x.answer))
+        for tu in tossups:
+            str_rep = tu.text + "<br />ANSWER: " + tu.answer
+            if str_rep not in tossupToBuzz:
+                tossupToBuzz[str_rep] = []
+            if tu.correctBuzz is not None:
+                tossupToBuzz[str_rep].append(tu.correctBuzz)
+            if tu.incorrectBuzz is not None:
+                tossupToBuzz[str_rep].append(tu.incorrectBuzz)
 
-        def buzzPosition(tossup: Tossup) -> float:
-            if tossup.correctBuzz is None:
-                return -1000
-            return tossup.correctBuzz.position / len(tossup.text.split())
-
-        for player in tossupsByPlayer:
-            links.append(f'<a href="#{toID(player)}">{player}</a>')
-            html += f'<center><h2 id="{toID(player)}">{player}'
-            html += ' <small><small><small><a href="#">&#x21A9;</a></small></small></small></h2></center>'
-
-            html += '<ol>'
-            bestTossups = sorted(tossupsByPlayer[player], key=buzzPosition)[:n]
-            for tu in bestTossups:
-                if tu.correctBuzz is None:
-                    continue
-                position = tu.correctBuzz.position
-                tossupWords = tu.text.split()
-                if position < len(tossupWords):
-                    tossupWords[position] = f"<u><mark>{tossupWords[position]}</u></mark>"
-                    # tossupWords[position] += f"<small><small><i>&#8592;buzzed for +{tu.correctBuzz.points}</i></small></small>"
+        # from https://geopard.tools/accessible-color-palette-generator/
+        COLORS = [
+            "#80E3C6", "#80CEE3", "#809DE3", "#9580E3",
+            "#C680E3", "#E380CE", "#E3809D", "#E39580", "#E3C680"
+        ]
+        NUM_COLORS = len(COLORS)
+        for tu, buzzes in tossupToBuzz.items():
+            formatted_tu_chunks = tu.split(' ')
+            al = tu.split('ANSWER: ')[1].split('[')[0].split('(')[0]
+            legend = []
+            for i, buzz in enumerate(sorted(buzzes, key=lambda b: b.position)):
+                color = COLORS[i % NUM_COLORS]
+                if formatted_tu_chunks[buzz.position].startswith("<div "):
+                    sign = "+" if buzz.points > 0 else '-'
+                    formatted_tu_chunks[buzz.position] += f'  <small><small>{sign}{buzz.points} {buzz.player}</small></small>'
                 else:
-                    print(f"Warning: buzz position {position} out of bounds for tossup '{tu.text}'")
-                html += f"<li>[after {(buzzPosition(tu) * 100):2.0f}% of the tossup] {' '.join(tossupWords)}"
-                html += f"<br />ANSWER: {tu.answer}<br /></li>"
-            html += '</ol>'
-
+                    if buzz.points < 0:
+                        color += '; color: red;font-weight:bold'
+                    formatted_tu_chunks[buzz.position] = f"<span style='background-color:{color}'>{formatted_tu_chunks[buzz.position] }</span>"
+                    word = "powered" if buzz.points > 10 else ("negged" if buzz.points < 0 else "buzzed")
+                    legend.append(f"<li><span style='background-color:{color}'>{buzz.player} {word}</span></li>")
+            html += f"""<div id={toID(al)} style='display:flex;flex-direction:row;'>
+            <div style='float:left;margin-right:1em;width:80%'>{' '.join(formatted_tu_chunks)}</div>
+            <div style='float:right;border-left:1px solid black;width:20%;margin-left:1em;'><ol>{''.join(legend)}</ol></div></div><hr>"""
+            links.append(f"<a href='#{toID(al)}'>{al.strip()}</a>")
         qbjtoolPyDir = path.dirname(path.realpath(__file__))
         TEMPLATE = open(path.join(qbjtoolPyDir, "buzzpts_template.html")).read()
         return TEMPLATE \

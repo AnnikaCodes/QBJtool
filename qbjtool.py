@@ -56,5 +56,5 @@ print(f"==> Generated stats for combined categories")
 open(f"{name} (cat stats).html", "w").write(t.statsToHTML(name))
 print(f"===> Wrote stats to {name}.html")
 
-open(f"{name} (buzzes).html", "w").write(t.buzzpointsToHTML(name, 15))
+open(f"{name} (buzzes).html", "w").write(t.buzzpointsToHTML(name, 100))
 print(f"===> Wrote best buzzes to {name} (buzzes).html")
